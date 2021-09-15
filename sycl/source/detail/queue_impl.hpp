@@ -439,7 +439,7 @@ private:
       bool KernelUsesAssert = false;
       if (IsKernel)
         KernelUsesAssert = Handler.MKernel
-                               ? true
+                               ? false
                                : kernelUsesAssert(Handler.MKernelName,
                                                   Handler.MOSModuleHandle);
 
