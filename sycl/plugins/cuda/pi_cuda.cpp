@@ -329,12 +329,7 @@ _pi_event::_pi_event(pi_command_type type, pi_context context, pi_queue queue)
       isRecorded_{false}, isStarted_{false}, evEnd_{nullptr}, evStart_{nullptr},
       evQueued_{nullptr}, queue_{queue}, context_{context} { }
 
-_pi_event::~_pi_event() {
-  if (queue_ != nullptr) {
-    cuda_piQueueRelease(queue_);
-  }
-  cuda_piContextRelease(context_);
-}
+_pi_event::~_pi_event() {}
 
 pi_result _pi_event::start() {
   assert(!is_started());
@@ -3335,20 +3330,24 @@ pi_result cuda_piextKernelSetArgPointer(pi_kernel kernel, pi_uint32 arg_index,
 // Events
 //
 pi_result cuda_piEventCreate(pi_context Context, pi_event * RetEvent) {
-  bool profilingEnabled = queue_->properties_ & PI_QUEUE_PROFILING_ENABLE;
+  assert(RetEvent != nullptr)
+
+  bool profilingEnabled = RetEvent->queue_->properties_ & PI_QUEUE_PROFILING_ENABLE;
 
   PI_CHECK_ERROR(cuEventCreate(
       &evEnd_, profilingEnabled ? CU_EVENT_DEFAULT : CU_EVENT_DISABLE_TIMING));
 
   if (profilingEnabled) {
-    PI_CHECK_ERROR(cuEventCreate(&evQueued_, CU_EVENT_DEFAULT));
-    PI_CHECK_ERROR(cuEventCreate(&evStart_, CU_EVENT_DEFAULT));
+    PI_CHECK_ERROR(cuEventCreate(&RetEvent->evQueued_, CU_EVENT_DEFAULT));
+    PI_CHECK_ERROR(cuEventCreate(&RetEvent->evStart_, CU_EVENT_DEFAULT));
   }
 
   if (queue_ != nullptr) {
-    cuda_piQueueRetain(queue_);
+    cuda_piQueueRetain(RetEvent->queue_);
   }
-  cuda_piContextRetain(context_);
+  cuda_piContextRetain(RetEvent->context_);
+
+  return PI_SUCCESS;
 }
 
 pi_result cuda_piEventGetInfo(pi_event event, pi_event_info param_name,
@@ -3448,6 +3447,12 @@ pi_result cuda_piEventRelease(pi_event event) {
   if (event->decrement_reference_count() == 0) {
     std::unique_ptr<_pi_event> event_ptr{event};
     pi_result result = PI_INVALID_EVENT;
+
+    if (queue_ != nullptr) {
+      cuda_piQueueRelease(event->queue_);
+    }
+    cuda_piContextRelease(event->context_);
+
     try {
       ScopedContext active(event->get_context());
       result = event->release();
