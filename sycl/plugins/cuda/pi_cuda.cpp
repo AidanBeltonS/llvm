@@ -327,23 +327,7 @@ pi_result cuda_piEventRetain(pi_event event);
 _pi_event::_pi_event(pi_command_type type, pi_context context, pi_queue queue)
     : commandType_{type}, refCount_{1}, hasBeenWaitedOn_{false},
       isRecorded_{false}, isStarted_{false}, evEnd_{nullptr}, evStart_{nullptr},
-      evQueued_{nullptr}, queue_{queue}, context_{context} {
-
-  bool profilingEnabled = queue_->properties_ & PI_QUEUE_PROFILING_ENABLE;
-
-  PI_CHECK_ERROR(cuEventCreate(
-      &evEnd_, profilingEnabled ? CU_EVENT_DEFAULT : CU_EVENT_DISABLE_TIMING));
-
-  if (profilingEnabled) {
-    PI_CHECK_ERROR(cuEventCreate(&evQueued_, CU_EVENT_DEFAULT));
-    PI_CHECK_ERROR(cuEventCreate(&evStart_, CU_EVENT_DEFAULT));
-  }
-
-  if (queue_ != nullptr) {
-    cuda_piQueueRetain(queue_);
-  }
-  cuda_piContextRetain(context_);
-}
+      evQueued_{nullptr}, queue_{queue}, context_{context} { }
 
 _pi_event::~_pi_event() {
   if (queue_ != nullptr) {
@@ -3350,8 +3334,21 @@ pi_result cuda_piextKernelSetArgPointer(pi_kernel kernel, pi_uint32 arg_index,
 //
 // Events
 //
-pi_result cuda_piEventCreate(pi_context, pi_event *) {
-  cl::sycl::detail::pi::die("PI Event Create not implemented in CUDA backend");
+pi_result cuda_piEventCreate(pi_context Context, pi_event * RetEvent) {
+  bool profilingEnabled = queue_->properties_ & PI_QUEUE_PROFILING_ENABLE;
+
+  PI_CHECK_ERROR(cuEventCreate(
+      &evEnd_, profilingEnabled ? CU_EVENT_DEFAULT : CU_EVENT_DISABLE_TIMING));
+
+  if (profilingEnabled) {
+    PI_CHECK_ERROR(cuEventCreate(&evQueued_, CU_EVENT_DEFAULT));
+    PI_CHECK_ERROR(cuEventCreate(&evStart_, CU_EVENT_DEFAULT));
+  }
+
+  if (queue_ != nullptr) {
+    cuda_piQueueRetain(queue_);
+  }
+  cuda_piContextRetain(context_);
 }
 
 pi_result cuda_piEventGetInfo(pi_event event, pi_event_info param_name,
