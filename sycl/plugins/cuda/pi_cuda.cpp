@@ -4651,13 +4651,11 @@ pi_result cuda_piextUSMEnqueuePrefetch(pi_queue queue, const void *ptr,
                                        const pi_event *events_waitlist,
                                        pi_event *event) {
 
-// CUDA has an issue with cuMemPrefetchAsync returning cudaErrorInvalidDevice
-// for Windows machines
-// TODO: Remove when fix is found
-#ifdef _MSC_VER
-  cl::sycl::detail::pi::die(
-      "cuda_piextUSMEnqueuePrefetch does not currently work on Windows");
-#endif
+  // Check if device supports managed memory access
+  int isConcurrentManagedAccessAvailable  = 0;
+  cudaDeviceGetAttribute(&isConcurrentManagedAccessAvailable, cudaDevAttrConcurrentManagedAccess, queue->get_context()->get_device()->get());
+  if (!isConcurrentManagedAccessAvailable)
+    cl::sycl::detail::pi::die("cuda_piextUSMEnqueuePrefetch cannot execute as the device does not support concurrent managed access");
 
   // flags is currently unused so fail if set
   if (flags != 0)
