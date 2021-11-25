@@ -503,27 +503,98 @@ public:
   }
 };
 
-bool createAlias(Module *M, std::string originalMangledName,
-                 const itanium_demangle::Node *functionTree,
-                 TargetTypeReplacements replacements) {
-  Remangler ATR{functionTree, replacements.getAliasTypeReplacements()};
+// Helper function to create an alias with a SmallDenseMap
+// createAliasWithMap returns false if remangling fails
+bool createAliasWithMap(
+    Module *M, std::string originalName,
+    const itanium_demangle::Node *functionTree,
+    SmallDenseMap<const char *, const char *> AliasTypeReplacements) {
+  // Create Alias of original Function
+  Remangler ATR{functionTree, AliasTypeReplacements};
+  std::string aliasName = ATR.remangle();
+
+  if (ATR.hasFailed())
+    return false;
+
+  // Name has not changed from the original name
+  if (aliasName == originalName)
+    return true;
+
+  Function *originalFunction = M->getFunction(originalName);
+  if (originalFunction) {
+    GlobalAlias::create(aliasName, originalFunction);
+  } else if (Verbose) {
+    std::cout << "Could not create alias " << aliasName << " : missing "
+              << originalName << std::endl;
+  }
+
+  return true;
+}
+
+// Helper function to create an alias with a function name
+void createAliasWithFunctionNames(Module *M, std::string originalName,
+                                  std::string aliasName) {
+  // Name has not changed from the original name so do not create alias
+  if (aliasName == originalName)
+    return;
+
+  Function *originalFunction = M->getFunction(originalName);
+  if (originalFunction) {
+    GlobalAlias::create(aliasName, originalFunction);
+  } else if (Verbose) {
+    std::cout << "Could not create alias " << aliasName << " : missing "
+              << originalName << std::endl;
+  }
+}
+
+bool createAliases(Module *M, std::string originalMangledName,
+                   std::string remangledName,
+                   const itanium_demangle::Node *functionTree,
+                   TargetTypeReplacements replacements) {
+
+  // Get parameter and alias replacement maps
+  SmallDenseMap<const char *, const char *> ParameterReplacements =
+      replacements.getParameterTypeReplacements();
+  SmallDenseMap<const char *, const char *> AliasReplacements =
+      replacements.getAliasTypeReplacements();
+
+  Remangler ATR{functionTree, AliasReplacements};
   std::string RemangledAliasName = ATR.remangle();
 
   if (ATR.hasFailed())
     return false;
 
-  // Name has not changed from the original name.
-  if (RemangledAliasName == originalMangledName)
+  // Create an alias out of the originalMangledName
+  createAliasWithFunctionNames(M, RemangledAliasName, originalMangledName);
+
+  // Create alias of remangled type
+  // Only needed if ParameterReplacements != AliasReplacements
+  // and multiple types within the function are replaced
+  SmallDenseMap<const char *, const char *> RemangledTypeReplacements;
+  bool AliasAndParameterSame = true;
+
+  // Create the mapping from th eoriginal function to the remangled function's
+  // alias This finds the terms which are the same between the
+  // ParameterReplacements and inverts the mapping And finds the terms which are
+  // different and keeps them the same.
+  for (auto it : ParameterReplacements) {
+    if (AliasReplacements.find(it.getFirst()) != AliasReplacements.end())
+      if (AliasReplacements[it.getFirst()] ==
+          ParameterReplacements[it.getFirst()])
+        RemangledTypeReplacements[ParameterReplacements[it.getFirst()]] =
+            it.getFirst();
+      else {
+        RemangledTypeReplacements[it.getFirst()] =
+            ParameterReplacements[it.getFirst()];
+        AliasAndParameterSame = false;
+      }
+  }
+
+  if (RemangledTypeReplacements.size() == 0 || AliasAndParameterSame)
     return true;
 
-  Function *Alias = M->getFunction(RemangledAliasName);
-  if (Alias) {
-    GlobalAlias::create(originalMangledName, Alias);
-  } else if (Verbose) {
-    std::cout << "Could not create alias " << originalMangledName
-              << " : missing " << RemangledAliasName << std::endl;
-  }
-  return true;
+  return createAliasWithMap(M, remangledName, functionTree,
+                            RemangledTypeReplacements);
 }
 
 bool remangleFunction(Function &func, Module *M,
@@ -558,7 +629,8 @@ bool remangleFunction(Function &func, Module *M,
 
     // Make an alias to a suitable function using the old name if there is a
     // type-mapping and the corresponding aliasee function exists.
-    if (!createAlias(M, MangledName, FunctionTree, replacements))
+    if (!createAliases(M, MangledName, RemangledName, FunctionTree,
+                       replacements))
       return false;
   }
 
