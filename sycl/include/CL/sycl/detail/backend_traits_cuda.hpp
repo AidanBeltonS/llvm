@@ -60,6 +60,10 @@ template <> struct interop<backend::ext_oneapi_cuda, queue> {
   using type = CUstream;
 };
 
+template <> struct interop<backend::ext_oneapi_cuda, platform> {
+  using type = std::vector<CUdevice>;
+};
+
 #ifdef __SYCL_INTERNAL_API
 template <> struct interop<backend::ext_oneapi_cuda, program> {
   using type = CUmodule;
@@ -127,6 +131,14 @@ template <> struct BackendReturn<backend::ext_oneapi_cuda, queue> {
   using type = CUstream;
 };
 
+template <> struct BackendInput<backend::ext_oneapi_cuda, platform> {
+  using type = std::vector<CUdevice>;
+};
+
+template <> struct BackendReturn<backend::ext_oneapi_cuda, platform> {
+  using type = std::vector<CUdevice>;
+};
+
 #ifdef __SYCL_INTERNAL_API
 template <> struct BackendInput<backend::ext_oneapi_cuda, program> {
   using type = CUmodule;
@@ -136,6 +148,17 @@ template <> struct BackendReturn<backend::ext_oneapi_cuda, program> {
   using type = CUmodule;
 };
 #endif
+
+template <> struct InteropFeatureSupportMap<backend::ext_oneapi_cuda> {
+  static constexpr bool MakePlatform = true;
+  static constexpr bool MakeDevice = true;
+  static constexpr bool MakeContext = false;
+  static constexpr bool MakeQueue = false;
+  static constexpr bool MakeEvent = false;
+  static constexpr bool MakeBuffer = false;
+  static constexpr bool MakeKernel = false;
+  static constexpr bool MakeKernelBundle = false;
+};
 
 } // namespace detail
 } // namespace sycl

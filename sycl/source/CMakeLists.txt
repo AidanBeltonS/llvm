@@ -119,6 +119,7 @@ endfunction(add_sycl_rt_library)
 set(SYCL_SOURCES
     "backend/opencl.cpp"
     "backend/level_zero.cpp"
+    "backend/cuda.cpp"
     "backend.cpp"
     "detail/accessor_impl.cpp"
     "detail/allowlist.cpp"

@@ -422,12 +422,12 @@ template <class To, class From> inline To cast(From value) {
 
 // These conversions should use PI interop API.
 template <> inline pi::PiProgram cast(cl_program) {
-  RT::assertion(false, "pi::cast -> use piextCreateProgramWithNativeHandle");
+  RT::assertion(false, "pi::cast -> use piextProgramCreateWithNativeHandle");
   return {};
 }
 
 template <> inline pi::PiDevice cast(cl_device_id) {
-  RT::assertion(false, "pi::cast -> use piextCreateDeviceWithNativeHandle");
+  RT::assertion(false, "pi::cast -> use piextDeviceCreateWithNativeHandle");
   return {};
 }
 
