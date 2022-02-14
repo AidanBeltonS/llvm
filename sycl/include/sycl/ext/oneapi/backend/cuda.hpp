@@ -22,6 +22,7 @@ namespace cuda {
 // their interface needs to be backend agnostic.
 // TODO: remove/merge with similar functions in sycl::detail
 __SYCL_EXPORT platform make_platform(pi_native_handle NativeHandle);
+__SYCL_EXPORT device make_device(pi_native_handle NativeHandle);
 
 // Construction of SYCL platform.
 template <typename T, typename sycl::detail::enable_if_t<
@@ -31,6 +32,16 @@ T make(
     typename sycl::detail::interop<backend::ext_oneapi_cuda, T>::type Interop) {
   return make_platform(reinterpret_cast<pi_native_handle>(Interop));
 }
+
+// Construction of SYCL platform.
+template <typename T, typename sycl::detail::enable_if_t<
+                          std::is_same<T, device>::value> * = nullptr>
+__SYCL_DEPRECATED("Use SYCL 2020 sycl::make_platform free function")
+T make(
+    typename sycl::detail::interop<backend::ext_oneapi_cuda, T>::type Interop) {
+  return make_device(reinterpret_cast<pi_native_handle>(Interop));
+}
+
 
 } // namespace cuda
 } // namespace oneapi
@@ -60,6 +71,20 @@ inline platform make_platform<backend::ext_oneapi_cuda>(
       detail::pi::cast<pi_native_handle>(&BackendObject);
   return ext::oneapi::cuda::make_platform(NativeHandle);
 }
+
+
+// Specialised from include/CL/sycl/backend.hpp
+template <>
+inline device make_device<backend::ext_oneapi_cuda>(
+    const backend_input_t<backend::ext_oneapi_cuda, device> &BackendObject) {
+  pi_native_handle NativeHandle = static_cast<pi_native_handle>(BackendObject);
+  return ext::oneapi::cuda::make_device(NativeHandle);
+}
+
+
+
+
+
 
 } // namespace sycl
 } // __SYCL_INLINE_NAMESPACE(cl)

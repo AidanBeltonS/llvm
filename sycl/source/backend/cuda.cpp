@@ -26,6 +26,10 @@ __SYCL_EXPORT platform make_platform(pi_native_handle NativeHandle) {
   return detail::make_platform(NativeHandle, backend::cuda);
 }
 
+__SYCL_EXPORT device make_device(pi_native_handle NativeHandle) {
+  return detail::make_device(NativeHandle, backend::cuda);
+}
+
 //----------------------------------------------------------------------------
 
 } // namespace cuda
