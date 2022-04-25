@@ -40,6 +40,8 @@ namespace ext {
 namespace intel {
 namespace experimental {
 namespace esimd {
+template <typename Ty, int N> class simd;
+
 namespace detail {
 class WrapperElementTypeProxy;
 } // namespace detail
@@ -49,6 +51,21 @@ class WrapperElementTypeProxy;
 } // namespace ext
 
 namespace detail {
+
+template <typename T> constexpr bool is_simd_type() {
+  return std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 1>>::value ||
+         std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 2>>::value ||
+         std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 4>>::value ||
+         std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 8>>::value ||
+         std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 16>>::value ||
+         std::is_same<
+             T, sycl::ext::intel::experimental::esimd::simd<half, 32>>::value;
+}
 
 inline __SYCL_CONSTEXPR_HALF uint16_t float2Half(const float &Val) {
   const uint32_t Bits = sycl::bit_cast<uint32_t>(Val);
@@ -400,6 +417,32 @@ public:
     half r = *this;
     return -r;
   }
+
+// Operator +, -, *, /
+#define OP(op, op1)                                                            \
+  friend half operator op(const half &lhs, const half &rhs) {                  \
+    half rtn = lhs;                                                            \
+    rtn op1 rhs;                                                               \
+    return rtn;                                                                \
+  }                                                                            \
+  template <typename T, class = typename std::enable_if_t<!is_simd_type<T>()>> \
+  friend half operator op(const half &lhs, const T &rhs) {                     \
+    half rtn = lhs;                                                            \
+    rtn op1 rhs;                                                               \
+    return rtn;                                                                \
+  }                                                                            \
+  template <typename T, class = typename std::enable_if_t<!is_simd_type<T>()>> \
+  friend half operator op(const T &lhs, const half &rhs) {                     \
+    half rtn = rhs;                                                            \
+    rtn op1 lhs;                                                               \
+    return rtn;                                                                \
+  }
+  OP(+, +=)
+  OP(-, -=)
+  OP(*, *=)
+  OP(/, /=)
+#undef OP
+
   // Operator float
   __SYCL_CONSTEXPR_HALF operator float() const {
     return static_cast<float>(Data);

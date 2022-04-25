@@ -43,27 +43,6 @@ half &half::operator/=(const half &RHS) {
 
 half::operator float() const { return half2Float(Buf); }
 
-// Operator +, -, *, /
-half operator+(half LHS, const half &RHS) {
-  LHS += RHS;
-  return LHS;
-}
-
-half operator-(half LHS, const half &RHS) {
-  LHS -= RHS;
-  return LHS;
-}
-
-half operator*(half LHS, const half &RHS) {
-  LHS *= RHS;
-  return LHS;
-}
-
-half operator/(half LHS, const half &RHS) {
-  LHS /= RHS;
-  return LHS;
-}
-
 // Operator <, >, <=, >=
 bool operator<(const half &LHS, const half &RHS) {
   return static_cast<float>(LHS) < static_cast<float>(RHS);
