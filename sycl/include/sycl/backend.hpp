@@ -171,9 +171,32 @@ template <backend BackendName, typename DataT, int Dimensions,
           access::placeholder IsPlaceholder>
 auto get_native(const accessor<DataT, Dimensions, AccessMode, AccessTarget,
                                IsPlaceholder> &Obj) ->
-    typename detail::interop<
-        BackendName, accessor<DataT, Dimensions, AccessMode, AccessTarget,
-                              IsPlaceholder>>::type = delete;
+    typename detail::interop<BackendName,
+                             accessor<DataT, Dimensions, AccessMode,
+                                      AccessTarget, IsPlaceholder>>::type {
+#ifdef __SYCL_DEVICE_ONLY__
+  return reinterpret_cast<typename detail::interop<
+      BackendName, accessor<DataT, Dimensions, AccessMode, AccessTarget,
+                            IsPlaceholder>>::type>(Obj.get_pointer().get());
+
+#else
+  throw runtime_error("Get native accessor is not support on host.",
+                      PI_ERROR_INVALID_OPERATION);
+#endif
+}
+
+template <backend BackendName, typename DataT, int Dimensions>
+auto get_native(const local_accessor<DataT, Dimensions> &Obj) ->
+    typename detail::interop<BackendName, local_accessor<DataT, Dimensions>>::type {
+#ifdef __SYCL_DEVICE_ONLY__
+  return reinterpret_cast <
+         typename detail::interop<BackendName, local_accessor<DataT, Dimensions>::type>(Obj.get_pointer().get());
+
+#else
+  throw runtime_error("Get native local_accessor is not support on host.",
+                      PI_ERROR_INVALID_OPERATION);
+#endif
+}
 
 namespace detail {
 // Forward declaration
