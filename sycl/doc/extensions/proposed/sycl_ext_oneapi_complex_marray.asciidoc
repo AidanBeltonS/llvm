@@ -93,9 +93,8 @@ supports.
 
 The user interface of the `marray<sycl::ext::oneapi::complex, {N}>`
 class is changed compared to the SYCL-2020 generic `marray` interface.
-It adds new constructors, `real()`, and `imag()`. This changes the
-`marray` interface when specialized for the `sycl::ext::oneapi::complex`
-type.
+This changes the `marray` interface when specialized for the
+`sycl::ext::oneapi::complex` type.
 
 The `marray` complex specialization is trivially copyable, and the type
 trait `is_device_copyable` should resolve to `std::true_type`.
@@ -123,7 +122,7 @@ namespace oneapi {
             using iterator = DataT*;
             using const_iterator = const DataT*;
 
-            marray();
+            constexpr marray();
 
             explicit constexpr marray(const DataT &arg);
 
@@ -133,42 +132,14 @@ namespace oneapi {
             constexpr marray(const marray<DataT, NumElements> &rhs);
             constexpr marray(marray<DataT, NumElements> &&rhs);
 
-            // Additional constructors
-            constexpr marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag);
-
-            constexpr marray(const marray<T, NumElements> &real, T imag);
-
-            constexpr marray(T real, const marray<T, NumElements> &imag);
-
-            template <std::size_t... I>
-            constexpr marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag, std::integer_sequence<std::size_t, I...> int_seq);
-
-            template <std::size_t... I>
-            constexpr marray(const marray &cmplx, std::integer_sequence<std::size_t, I...> int_seq);
-
             // Available only when: NumElements == 1
             operator DataT() const;
 
             static constexpr std::size_t size() noexcept;
 
             // real and imag
-            constexpr marray<T, NumElements> real() const;
-
-            constexpr marray<T, NumElements> imag() const;
-
-            template <std::size_t... I>
-            constexpr auto real(std::integer_sequence<std::size_t, I...> int_seq) const;
-
-            template <std::size_t... I>
-            constexpr auto imag(std::integer_sequence<std::size_t, I...> int_seq) const;
-
-            void real(const marray<T, NumElements> &values);
-
-            void imag(const marray<T, NumElements> &values);
-
-            void real(T value);
-
-            void imag(T value);
+            marray<T, NumElements> real() const;
+            marray<T, NumElements> imag() const;
 
             // subscript operator
             reference operator[](std::size_t index);
@@ -206,7 +177,7 @@ namespace oneapi {
             friend marray operatorOP(marray& lhs, int) { /* ... */ }
 
             // OP is unary +, -
-            friend marray operatorOP(marray &rhs) { /* ... */ }
+            friend marray operatorOP(const marray &rhs) { /* ... */ }
 
             // OP is: &, |, ^
             friend marray operatorOP(const marray &lhs, const marray &rhs) { /* ... */ }
@@ -274,40 +245,19 @@ when it is specialized with `sycl::ext::oneapi::complex<double>`,
 `sycl::ext::oneapi::complex<float>`, and
 `sycl::ext::oneapi::complex<sycl::half>`. For the purposes of this
 specification, we use the generic type name `mgencomplex` to represent
-these three specializations. However, there is no C++ type actually named
-`mgencomplex`.
+these three specializations, and `mgenfloat` to represent marray of
+floating-point types.
+However, there is no C++ type actually named `mgencomplex` and `mgenfloat`.
 
 [%header,cols="5,5"]
 |===
 |Function
 |Description
 
-|`marray(const mgenfloat& x, const mgenfloat& y);`
-|Constructs a marray of complex numbers with real values in marray x, and the imaginary values in marray y.
-|`marray(const mgenfloat& x, genfloat y);`
-|Constructs a marray of complex numbers with real values in marray x, and the imaginary value y.
-|`marray(genfloat x, const mgenfloat& y);`
-|Constructs a marray of complex numbers with real value x, and the imaginary values in marray y.
-|`marray(const mgenfloat& x, const mgenfloat& y, std::integer_sequence int_seq);`
-|Constructs a marray of complex numbers from real values in marray x, and the imaginary values in marray y. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
-|`marray(const mgencomplex& x, std::integer_sequence int_seq);`
-|Constructs a marray of complex numbers from a complex marray x. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
 |`mgenfloat real();`
 |Returns a marray of the real components for marray of complex numbers held by this `marray`.
 |`mgenfloat imag();`
 |Returns a marray of the imaginary components for marray of complex numbers held by this `marray`.
-|`mgenfloat real(std::integer_sequence int_seq);`
-|Returns a marray of real components of the complex number held by this `marray`. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
-|`mgenfloat imag(std::integer_sequence int_seq);`
-|Returns a marray of imaginary components of the complex number held by this `marray`. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
-|`void real(const mgenfloat& y);`
-|Set each element of the real components held by this `marray` to the corresponding element in y.
-|`void imag(const mgenfloat& y);`
-|Set each element of the imaginary components held by this `marray` to the corresponding element in y.
-|`void real(genfloat y);`
-|Set each element of the real components held by this `marray` to the decimal number y.
-|`void imag(genfloat y);`
-|Set each element of the imaginary components held by this `marray` to the decimal number y.
 |===
 
 === Mathematical operations
